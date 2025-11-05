@@ -1,0 +1,63 @@
+#include <Arduino.h>
+#include <Servo.h>
+
+Servo solarServo;
+
+// LDR pins
+const int LDR_Left  = A0;
+const int LDR_Right = A1;
+
+// Servo pin
+const int servoPin = 9;
+
+// Servo positions
+int servoPos = 90;           
+const int EAST_POS = 30;     
+const int WEST_POS = 150;    
+const int SERVO_MIN = 20;
+const int SERVO_MAX = 160;
+
+// Sensitivity and thresholds
+const int diffThreshold = 30;   
+const int lightThreshold = 200; 
+
+void setup() {
+  Serial.begin(9600);
+  solarServo.attach(servoPin);
+  solarServo.write(servoPos);
+  delay(500);
+}
+
+void loop() {
+  int leftValue  = analogRead(LDR_Left);
+  int rightValue = analogRead(LDR_Right);
+  int avgLight   = (leftValue + rightValue) / 2;
+  int diff       = leftValue - rightValue;
+
+  Serial.print("Left: "); Serial.print(leftValue);
+  Serial.print(" | Right: "); Serial.print(rightValue);
+  Serial.print(" | Diff: "); Serial.print(diff);
+  Serial.print(" | AvgLight: "); Serial.println(avgLight);
+
+  // Night condition
+  if (avgLight < lightThreshold) {
+    if (servoPos > EAST_POS) {
+      servoPos -= 1;
+      servoPos = constrain(servoPos, SERVO_MIN, SERVO_MAX);
+      solarServo.write(servoPos);
+      delay(100);
+    }
+  } 
+  else {
+    // Day time
+    if (abs(diff) > diffThreshold) {
+      if (diff > 0) servoPos++;
+      else servoPos--;
+
+      servoPos = constrain(servoPos, SERVO_MIN, SERVO_MAX);
+      solarServo.write(servoPos);
+    }
+  }
+
+  delay(150);
+}
