@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <Servo.h>
 
 Servo solarServo;
@@ -11,15 +10,15 @@ const int LDR_Right = A1;
 const int servoPin = 9;
 
 // Servo positions
-int servoPos = 90;           
-const int EAST_POS = 30;     
-const int WEST_POS = 150;    
+int servoPos = 90;           // current position
+const int EAST_POS = 30;     // facing east (reset position)
+const int WEST_POS = 150;    // max west position
 const int SERVO_MIN = 20;
 const int SERVO_MAX = 160;
 
 // Sensitivity and thresholds
-const int diffThreshold = 30;   
-const int lightThreshold = 200; 
+const int diffThreshold = 30;   // move only if difference > this
+const int lightThreshold = 200; // below this, it's considered night
 
 void setup() {
   Serial.begin(9600);
@@ -39,25 +38,28 @@ void loop() {
   Serial.print(" | Diff: "); Serial.print(diff);
   Serial.print(" | AvgLight: "); Serial.println(avgLight);
 
-  // Night condition
   if (avgLight < lightThreshold) {
+    // 🌙 Night time — return to east position slowly
     if (servoPos > EAST_POS) {
       servoPos -= 1;
       servoPos = constrain(servoPos, SERVO_MIN, SERVO_MAX);
       solarServo.write(servoPos);
       delay(100);
     }
-  } 
-  else {
-    // Day time
+  } else {
+    // 🌞 Day time — track the sun
     if (abs(diff) > diffThreshold) {
-      if (diff > 0) servoPos++;
-      else servoPos--;
-
+      if (diff > 0) {
+        // Left LDR brighter → move left (increase angle)
+        servoPos += 1;
+      } else {
+        // Right LDR brighter → move right (decrease angle)
+        servoPos -= 1;
+      }
       servoPos = constrain(servoPos, SERVO_MIN, SERVO_MAX);
       solarServo.write(servoPos);
     }
   }
 
-  delay(150);
+  delay(150); // adjust for smoother or faster tracking
 }
